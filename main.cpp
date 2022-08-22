@@ -195,7 +195,6 @@ int main(int argc, char* argv[]) {
 	Mac broadcast_mac(broadcast);										// ff:ff:ff:ff:ff:ff:ff
 
 	count = (argc - 2)/2;
-
 	// Map 대신 Sector 배열을 동적할당
 	sector = new Sectors[count];
 	for (int i = 0; i < count; i++)
@@ -231,19 +230,25 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 
-        EthHdr* spoof_Packet = (EthHdr*)packet;
+        EthHdr*	spoof_Packet = (EthHdr*)packet;
 		// pcap test에서 가져옴.
 		uint64_t packet_Size = header->caplen;
 
         // Sector 즉 받은 인자수 만큼 반복
         for(int i = 0; i < count; i++) 
 		{
-            if(spoof_Packet->smac().operator!=(sector[i].target_mac_))
+			printf("smac: %s\n",((std::string)spoof_Packet->smac()).c_str());
+			printf("dmac: %s\n",((std::string)spoof_Packet->dmac()).c_str());
+            
+            if(spoof_Packet->smac() != sector[i].sender_mac_)
                 continue;
-			if(spoof_Packet->dmac().operator!=(my_mac))
-                continue;  
+			if(spoof_Packet->dmac() != my_mac)
+                continue;
 			
-            if(spoof_Packet->type() == EthHdr::Ip4)
+			printf("smac: %s\n",((std::string)spoof_Packet->smac()).c_str());
+			printf("dmac: %s\n",((std::string)spoof_Packet->dmac()).c_str());
+            
+			if(spoof_Packet->type() == EthHdr::Ip4)
             {
                 // dst mac -> target MAC
                 spoof_Packet->dmac_ = sector[i].target_mac_;
@@ -251,8 +256,10 @@ int main(int argc, char* argv[]) {
                 spoof_Packet->smac_ = my_mac;
 
                 // relay packet send
-                res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(spoof_Packet), packet_Size);
-                if (res != 0) {
+                int re = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(spoof_Packet), packet_Size);
+
+				printf("send Packet\n");
+                if (re != 0) {
                     fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
                 }
             }
